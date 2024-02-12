@@ -1,31 +1,34 @@
 import { useContext, useRef } from "react";
 import AnimationWrapper from "../common/page-animation";
 import InputBox from "../components/InputBox";
-import googleIcon from "../imgs/google.png"
+import googleIcon from "../imgs/google.png";
 import { Link, Navigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
-import axios from "axios"
+import axios from "axios";
 import { storeInSession } from "../common/session";
 import { UserContext } from "../App";
 import { authWithGoogle } from "../common/firebase";
 
 const UserAuthForm = ({ type }) => {
-
     const authForm = useRef();
 
-    let { userAuth: { access_token }, setUserAuth } = useContext(UserContext)
-
+    let {
+        userAuth: { access_token },
+        setUserAuth,
+    } = useContext(UserContext);
 
     const userAuthThroughServer = (serverRoute, formData) => {
-        axios.post(import.meta.env.VITE_SERVER_DOMAIN + serverRoute, formData)
+        axios
+            .post(import.meta.env.VITE_SERVER_DOMAIN + serverRoute, formData)
             .then(({ data }) => {
-                storeInSession("user", JSON.stringify(data))
-                setUserAuth(data)
+                storeInSession("user", JSON.stringify(data));
+                setUserAuth(data);
             })
             .catch(({ response }) => {
-                toast.error(response.data.error)
-            })
-    }
+                console.log(response.data);
+                toast.error(response.data);
+            });
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -35,10 +38,10 @@ const UserAuthForm = ({ type }) => {
         let emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/; // regex for email
         let passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/; // regex for password
 
-        //reteriving data form the form 
+        //reteriving data form the form
         let form = new FormData(authForm.current);
         let formData = {};
-        // looping over form data to get the values extracted 
+        // looping over form data to get the values extracted
         for (let [key, value] of form.entries()) {
             formData[key] = value;
         }
@@ -47,111 +50,121 @@ const UserAuthForm = ({ type }) => {
         let { fullname, email, password } = formData;
         if (fullname) {
             if (fullname.length < 3) {
-                return toast.error("fullname must be at least 3 characters")
+                return toast.error("fullname must be at least 3 characters");
             }
         }
 
         if (!email.length) {
-            return toast.error("email required")
+            return toast.error("email required");
         }
         if (!emailRegex.test(email)) {
-            return toast.error("email is invalid")
+            return toast.error("email is invalid");
         }
         if (!passwordRegex.test(password)) {
-            return toast.error("password should be 6 to 20 characters long with a numeric, lowercase and uppercase letter ")
+            return toast.error(
+                "password should be 6 to 20 characters long with a numeric, lowercase and uppercase letter "
+            );
         }
-        userAuthThroughServer(serverRoute, formData)
-    }
-    //google auth function 
+        userAuthThroughServer(serverRoute, formData);
+    };
+    //google auth function
     const handleGoogleAuth = (e) => {
         e.preventDefault();
-        authWithGoogle().then(user => {
-            let serverRoute = "/google-auth";
-            let formData = {
-                access_token: user.accessToken
-            }
-            userAuthThroughServer(serverRoute, formData)
-        })
-            .catch(err => {
-                toast.error("Oops, trouble logging with Google")
-                return console.log(err)
+        authWithGoogle()
+            .then((user) => {
+                let serverRoute = "/google-auth";
+                let formData = {
+                    access_token: user.accessToken,
+                };
+                userAuthThroughServer(serverRoute, formData);
             })
-    }
+            .catch((err) => {
+                toast.error("Oops, trouble logging with Google");
+                return console.log(err);
+            });
+    };
 
-    return (
-        access_token ? <Navigate to="/" />
-            :
-            <AnimationWrapper keyValue={type}>
-                <section className="h-cover flex items-center justify-center ">
-                    <Toaster />
-                    <form ref={authForm} className="w-[80] max-w-[400px]" >
-                        <h1 className="text-4xl font-gelasio capitalize text-center mb-24 ">
-                            {type == "sign-in" ? "Welcome back" : "Join Us Today"}
-                        </h1>
-                        {
-                            type !== "sign-in" ?
-                                <InputBox
-                                    name="fullname"
-                                    type="text"
-                                    placeholder="Full Name"
-                                    icon="fi-rr-user"
-                                />
-
-                                : ""
-                        }
-
+    return access_token ? (
+        <Navigate to="/" />
+    ) : (
+        <AnimationWrapper keyValue={type}>
+            <section className="h-cover flex items-center justify-center ">
+                <Toaster />
+                <form ref={authForm} className="w-[80] max-w-[400px]">
+                    <h1 className="text-4xl font-gelasio capitalize text-center mb-24 ">
+                        {type == "sign-in" ? "Welcome back" : "Join Us Today"}
+                    </h1>
+                    {type !== "sign-in" ? (
                         <InputBox
-                            name="email"
-                            type="email"
-                            placeholder="Email"
-                            icon="fi-rr-envelope"
+                            name="fullname"
+                            type="text"
+                            placeholder="Full Name"
+                            icon="fi-rr-user"
                         />
+                    ) : (
+                        ""
+                    )}
 
-                        <InputBox
-                            name="password"
-                            type="password"
-                            placeholder="Password"
-                            icon="fi-rr-key"
-                        />
+                    <InputBox
+                        name="email"
+                        type="email"
+                        placeholder="Email"
+                        icon="fi-rr-envelope"
+                    />
 
-                        <button className="btn-dark center mt-14 "
-                            type="submit"
-                            onClick={handleSubmit}
-                        >
-                            {type.replace("-", "")}
-                        </button>
+                    <InputBox
+                        name="password"
+                        type="password"
+                        placeholder="Password"
+                        icon="fi-rr-key"
+                    />
 
-                        <div className="relative w-full flex items-center gap-2 my-10 opacity-10 uppercase text-black font-bold ">
-                            <hr className="w-1/2 border-black " />
-                            <p>or</p>
-                            <hr className="w-1/2 border-black " />
-                        </div>
+                    <button
+                        className="btn-dark center mt-14 "
+                        type="submit"
+                        onClick={handleSubmit}
+                    >
+                        {type.replace("-", "")}
+                    </button>
 
-                        <button className="btn-dark flex items-center justify-center gap-4 w-[90%] center " onClick={handleGoogleAuth}>
-                            <img src={googleIcon} className="w-5" />Countinue with Google
-                        </button>
+                    <div className="relative w-full flex items-center gap-2 my-10 opacity-10 uppercase text-black font-bold ">
+                        <hr className="w-1/2 border-black " />
+                        <p>or</p>
+                        <hr className="w-1/2 border-black " />
+                    </div>
 
-                        {
-                            type == "sign-in" ?
-                                <p className="mt-6 text-dark-grey text-xl text-center">Don't have an account ?
-                                    <Link to="/signup" className="underline text-black text-xl ml-1" >
-                                        Join us today
-                                    </Link>
-                                </p>
-                                :
-                                <p className="mt-6 text-dark-grey text-xl text-center">Already a member ?
-                                    <Link to="/signin" className="underline text-black text-xl ml-1" >
-                                        Sign in here
-                                    </Link>
-                                </p>
+                    <button
+                        className="btn-dark flex items-center justify-center gap-4 w-[90%] center "
+                        onClick={handleGoogleAuth}
+                    >
+                        <img src={googleIcon} className="w-5" />
+                        Countinue with Google
+                    </button>
 
-                        }
-
-                    </form>
-
-                </section>
-            </AnimationWrapper>
-
-    )
-}
+                    {type == "sign-in" ? (
+                        <p className="mt-6 text-dark-grey text-xl text-center">
+                            Don't have an account ?
+                            <Link
+                                to="/signup"
+                                className="underline text-black text-xl ml-1"
+                            >
+                                Join us today
+                            </Link>
+                        </p>
+                    ) : (
+                        <p className="mt-6 text-dark-grey text-xl text-center">
+                            Already a member ?
+                            <Link
+                                to="/signin"
+                                className="underline text-black text-xl ml-1"
+                            >
+                                Sign in here
+                            </Link>
+                        </p>
+                    )}
+                </form>
+            </section>
+        </AnimationWrapper>
+    );
+};
 export default UserAuthForm;
